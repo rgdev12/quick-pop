@@ -5,6 +5,10 @@ import { electronAPI } from '@electron-toolkit/preload'
 const api = {
   onClipboardUpdate: (callback: (text: string) => void) => {
     ipcRenderer.on('clipboard-update', (_event, value) => callback(value))
+  },
+
+  hideWindow: () => {
+    ipcRenderer.send('hide-window')
   }
 }
 

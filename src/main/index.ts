@@ -6,8 +6,8 @@ import icon from '../../resources/icon.png?asset'
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 700,
-    height: 400,
+    width: 500,
+    height: 450,
     show: false,
     frame: false,
     transparent: true,
@@ -88,6 +88,11 @@ app.whenReady().then(() => {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+
+  ipcMain.on('hide-window', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win) win.hide()
   })
 })
 
