@@ -4,18 +4,23 @@ import { Bot, Copy, GripHorizontal, X } from 'lucide-vue-next'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import MarkdownIt from 'markdown-it'
 
+const MODEL_PRIORITY = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-3-flash-preview",
+  "gemma-3-12b-it",
+];
+
 const md = new MarkdownIt()
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY)
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
 
 const SYSTEM_PROMPT = `
 Eres un tutor experto de inglés llamado "Quick-Pop". 
-Tu objetivo es traducir el texto que te envíe el usuario y explicar brevemente puntos clave de gramática o vocabulario si es necesario, no te presentes
-ve directamente al punto.
+Tu objetivo es traducir el texto que te envíe el usuario, no te presentes ve directamente al punto.
 Formato de respuesta deseado (usa Markdown):
 1. **Traducción**: La traducción directa y natural al español.
 2. **Notas**: (Opcional) Si hay modismos, phrasal verbs o estructuras complejas, explícalas muy brevemente en viñetas.
-Mantén un tono conciso, útil y amigable. No te extiendas demasiado, es una app rápida.
+Mantén un tono conciso, útil y amigable.
 `
 
 const sourceText = ref('');
@@ -42,18 +47,29 @@ const translate = async () => {
   isLoading.value = true;
   resultText.value = '';
 
-  try {
-    const prompt = `${SYSTEM_PROMPT}\n\nTexto a traducir:\n"${sourceText.value}"`
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
+  for (const modelName of MODEL_PRIORITY) {
+    console.log(`Probando modelo: ${modelName}`);
+    try {
+      const prompt = `${SYSTEM_PROMPT}\n\nTexto a traducir:\n"${sourceText.value}"`
+      const currentModel = genAI.getGenerativeModel({ model: modelName })
+      const result = await currentModel.generateContent(prompt)
+      const response = result.response;
 
-    resultText.value = md.render(text);
-  } catch (error) {
-    console.error(error)
-    resultText.value = `<span class="text-red-400">Error: No se pudo conectar con Gemini. Verifica tu API Key.</span>`
-  } finally {
-    isLoading.value = false;
+      const text = response.text();
+
+      resultText.value = md.render(text);
+      return;
+    } catch (error) {
+      console.warn(`Modelo ${modelName} falló o alcanzó límite. Probando el siguiente...`);
+
+      // si falla el último modelo, mostrar error
+      if (modelName === MODEL_PRIORITY[MODEL_PRIORITY.length - 1]) {
+        console.error(error)
+        resultText.value = `<span class="text-red-400">Todos los modelos fallaron. Verifica tu conexión o API Key.</span>`;
+      }
+    } finally {
+      isLoading.value = false;
+    }
   }
 }
 
