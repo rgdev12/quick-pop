@@ -25,7 +25,8 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@google/generative-ai": "^0.24.1",
     "electron-updater": "^6.3.9",
-    "lucide-vue-next": "^0.562.0"
+    "lucide-vue-next": "^0.562.0",
+    "markdown-it": "^14.1.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "3.0.0",
