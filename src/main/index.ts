@@ -1,13 +1,14 @@
 import { app, shell, BrowserWindow, ipcMain, globalShortcut, clipboard } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import icon from '../../resources/logo-st.png?asset'
 
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 500,
     height: 450,
+    icon: icon,
     show: false,
     frame: false,
     transparent: true,
