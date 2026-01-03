@@ -6,8 +6,8 @@ import MarkdownIt from 'markdown-it'
 
 const MODEL_PRIORITY = [
   "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
   "gemini-3-flash-preview",
+  "gemini-2.5-flash-lite",
   "gemma-3-12b-it",
 ];
 
