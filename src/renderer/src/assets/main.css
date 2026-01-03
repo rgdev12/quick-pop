@@ -1,1 +1,7 @@
 @import './base.css';
+
+html, body {
+  background-color: transparent;
+  height: 100%;
+  overflow: hidden;
+}

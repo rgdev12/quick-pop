@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, globalShortcut } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -6,19 +6,26 @@ import icon from '../../resources/icon.png?asset'
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 700,
+    height: 400,
     show: false,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      devTools: true // para probar de momento
     }
   })
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+    mainWindow.focus()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -54,6 +61,26 @@ app.whenReady().then(() => {
 
   createWindow()
 
+  // Registro de atajo
+  const ret = globalShortcut.register('CommandOrControl+Shift+X', () => {
+    const wins = BrowserWindow.getAllWindows()
+    if (wins.length === 0) {
+      createWindow()
+    } else {
+      const win = wins[0]
+      if (win.isVisible()) {
+        win.hide()
+      } else {
+        win.show()
+        win.focus()
+      }
+    }
+  })
+
+  if (!ret) {
+    console.log('Fallo al registrar el atajo global');
+  }
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
@@ -68,6 +95,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
 
 // In this file you can include the rest of your app's specific main process
