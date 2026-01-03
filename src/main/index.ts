@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, globalShortcut } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, globalShortcut, clipboard } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -71,6 +71,9 @@ app.whenReady().then(() => {
       if (win.isVisible()) {
         win.hide()
       } else {
+        const text = clipboard.readText();
+        win.webContents.send('clipboard-update', text);        
+
         win.show()
         win.focus()
       }
