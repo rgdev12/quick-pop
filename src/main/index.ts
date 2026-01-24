@@ -2,6 +2,51 @@ import { app, shell, BrowserWindow, ipcMain, globalShortcut, clipboard } from 'e
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/logo-st.png?asset'
+import Store from 'electron-store'
+
+// Settings store with schema
+interface StoreSchema {
+  apiKey: string
+  models: string[]
+}
+
+// Handle ESM/CJS interop for electron-store
+const ElectronStore = ((Store as unknown as { default?: typeof Store }).default || Store) as typeof Store
+
+const store = new ElectronStore<StoreSchema>({
+  defaults: {
+    apiKey: '',
+    models: [
+      'gemini-2.5-flash',
+      'gemini-3-flash-preview',
+      'gemini-2.5-flash-lite',
+      'gemma-3-12b-it'
+    ]
+  }
+})
+
+
+// IPC Handlers for settings
+ipcMain.handle('get-settings', () => {
+  return {
+    apiKey: store.get('apiKey'),
+    models: store.get('models')
+  }
+})
+
+ipcMain.handle('get-setting', (_event, key: keyof StoreSchema) => {
+  return store.get(key)
+})
+
+ipcMain.handle('set-setting', (_event, key: keyof StoreSchema, value: string | string[]) => {
+  store.set(key, value)
+  return true
+})
+
+ipcMain.handle('has-api-key', () => {
+  const apiKey = store.get('apiKey')
+  return apiKey && apiKey.length > 0
+})
 
 function createWindow(): void {
   // Create the browser window.

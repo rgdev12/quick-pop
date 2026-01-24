@@ -9,7 +9,13 @@ const api = {
 
   hideWindow: () => {
     ipcRenderer.send('hide-window')
-  }
+  },
+
+  // Settings API
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  getSetting: (key: string) => ipcRenderer.invoke('get-setting', key),
+  setSetting: (key: string, value: string | string[]) => ipcRenderer.invoke('set-setting', key, value),
+  hasApiKey: () => ipcRenderer.invoke('has-api-key')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
