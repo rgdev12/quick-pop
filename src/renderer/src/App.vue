@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
-import { Bot, Copy, GripHorizontal, X } from 'lucide-vue-next'
+import { Bot, Copy, GripHorizontal, X, Settings } from 'lucide-vue-next'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import MarkdownIt from 'markdown-it'
-
-const MODEL_PRIORITY = [
-  "gemini-2.5-flash",
-  "gemini-3-flash-preview",
-  "gemini-2.5-flash-lite",
-  "gemma-3-12b-it",
-];
+import SettingsView from './components/SettingsView.vue'
+import ApiKeySetup from './components/ApiKeySetup.vue'
 
 const md = new MarkdownIt()
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY)
+
+// Dynamic settings - loaded from store
+let genAI: GoogleGenerativeAI | null = null
+const modelPriority = ref<string[]>([])
 
 const SYSTEM_PROMPT = `
 Eres un tutor experto de inglés y español llamado "Quick-Pop". 
@@ -28,7 +26,23 @@ const resultText = ref('');
 const isLoading = ref(false);
 const inputRef = ref<HTMLTextAreaElement | null>(null)
 
-onMounted(() => {
+// Settings state
+const isInitialized = ref(false)
+const needsApiKey = ref(false)
+const showSettings = ref(false)
+
+onMounted(async () => {
+  // Check if API key is configured
+  const hasKey = await window.api.hasApiKey()
+  
+  if (!hasKey) {
+    needsApiKey.value = true
+  } else {
+    await initializeApp()
+  }
+
+  isInitialized.value = true
+
   window.api.onClipboardUpdate((text: string) => {
     sourceText.value = text;
     resultText.value = '';
@@ -37,18 +51,33 @@ onMounted(() => {
   window.addEventListener('focus', focusInput)
 })
 
+const initializeApp = async () => {
+  const settings = await window.api.getSettings()
+  genAI = new GoogleGenerativeAI(settings.apiKey)
+  modelPriority.value = settings.models
+}
+
+const onApiKeySetupComplete = async () => {
+  await initializeApp()
+  needsApiKey.value = false
+  focusInput()
+}
+
+const onSettingsUpdated = async () => {
+  await initializeApp()
+}
+
 const closeApp = () => {
   window.api.hideWindow()
 }
 
 const translate = async () => {
-  if (!sourceText.value.trim()) return;
+  if (!sourceText.value.trim() || !genAI) return;
 
   isLoading.value = true;
   resultText.value = '';
 
-  for (const modelName of MODEL_PRIORITY) {
-    console.log(`Probando modelo: ${modelName}`);
+  for (const modelName of modelPriority.value) {
     try {
       const prompt = `${SYSTEM_PROMPT}\n\nTexto a traducir:\n"${sourceText.value}"`
       const currentModel = genAI.getGenerativeModel({ model: modelName })
@@ -60,10 +89,8 @@ const translate = async () => {
       resultText.value = md.render(text);
       return;
     } catch (error) {
-      console.warn(`Modelo ${modelName} falló o alcanzó límite. Probando el siguiente...`);
-
       // si falla el último modelo, mostrar error
-      if (modelName === MODEL_PRIORITY[MODEL_PRIORITY.length - 1]) {
+      if (modelName === modelPriority.value[modelPriority.value.length - 1]) {
         console.error(error)
         resultText.value = `<span class="text-red-400">Todos los modelos fallaron. Verifica tu conexión o API Key.</span>`;
       }
@@ -81,7 +108,11 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
   // Esc = Cerrar
   if (e.key === 'Escape') {
-    closeApp()
+    if (showSettings.value) {
+      showSettings.value = false
+    } else {
+      closeApp()
+    }
   }
 }
 
@@ -99,15 +130,37 @@ const focusInput = () => {
 </script>
 
 <template>
-  <div class="w-screen h-screen flex flex-col items-center justify-center overflow-y-auto custom-scrollbar max-h-[calc(100vh-8px)]">
+  <div v-if="!isInitialized" class="w-screen h-screen flex items-center justify-center bg-slate-950">
+    <div class="flex gap-1">
+      <div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" style="animation-delay: 0s;"></div>
+      <div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" style="animation-delay: 0.2s;"></div>
+      <div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" style="animation-delay: 0.4s;"></div>
+    </div>
+  </div>
+
+  <ApiKeySetup 
+    v-else-if="needsApiKey" 
+    @complete="onApiKeySetupComplete" 
+  />
+
+  <div v-else class="w-screen h-screen flex flex-col items-center justify-center overflow-y-auto custom-scrollbar max-h-[calc(100vh-8px)]">
     <div class="rounded-t-xl h-8 w-full bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-3 border-b border-slate-700/50 drag-region cursor-move select-none">
       <div class="flex items-center gap-2 text-xs font-bold text-slate-400">
         <GripHorizontal class="w-3 h-3" />
         <span>Quick-Pop</span>
       </div>
-      <button @click="closeApp" class="text-slate-500 hover:text-red-400 transition-colors no-drag p-1 rounded-md hover:bg-white/5">
-        <X class="w-3 h-3" />
-      </button>
+      <div class="flex items-center gap-1">
+        <button 
+          @click="showSettings = true" 
+          class="text-slate-500 hover:text-cyan-400 transition-colors no-drag p-1 rounded-md hover:bg-white/5"
+          title="Configuración"
+        >
+          <Settings class="w-3 h-3" />
+        </button>
+        <button @click="closeApp" class="text-slate-500 hover:text-red-400 transition-colors no-drag p-1 rounded-md hover:bg-white/5">
+          <X class="w-3 h-3" />
+        </button>
+      </div>
     </div>
 
     <div class="w-full max-w-2xl bg-slate-900/90 backdrop-blur-xl bprder border-slate-700/50 rounded-b-xl p-6 shadow-2xl overflow-hidden flex flex-col text-slate-200">
@@ -156,8 +209,13 @@ const focusInput = () => {
           <span class="bg-slate-800 px-2 py-1 rounded text-slate-400">Enter: Traducir</span>
         </div>
       </div>
-
     </div>
+
+    <SettingsView 
+      v-if="showSettings" 
+      @close="showSettings = false"
+      @settings-updated="onSettingsUpdated"
+    />
   </div>
 </template>
 
@@ -177,10 +235,10 @@ const focusInput = () => {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #334155; /* Slate-700 */
+  background-color: #334155;
   border-radius: 20px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #475569; /* Slate-600 */
+  background-color: #475569;
 }
 </style>
