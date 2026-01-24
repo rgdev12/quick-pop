@@ -24,6 +24,7 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@google/generative-ai": "^0.24.1",
+    "electron-store": "^11.0.2",
     "electron-updater": "^6.3.9",
     "lucide-vue-next": "^0.562.0",
     "markdown-it": "^14.1.0"
