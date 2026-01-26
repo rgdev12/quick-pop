@@ -8,9 +8,10 @@ import Store from 'electron-store'
 interface StoreSchema {
   apiKey: string
   models: string[]
+  shortcut: string
 }
 
-// Handle ESM/CJS interop for electron-store
+// Manejo ESM/CJS interop para electron-store
 const ElectronStore = ((Store as unknown as { default?: typeof Store }).default || Store) as typeof Store
 
 const store = new ElectronStore<StoreSchema>({
@@ -21,16 +22,43 @@ const store = new ElectronStore<StoreSchema>({
       'gemini-3-flash-preview',
       'gemini-2.5-flash-lite',
       'gemma-3-12b-it'
-    ]
+    ],
+    shortcut: 'CommandOrControl+Shift+X'
   }
 })
 
+function registerShortcut(accelerator: string): boolean {
+  globalShortcut.unregisterAll()
+  
+  const ret = globalShortcut.register(accelerator, () => {
+    const wins = BrowserWindow.getAllWindows()
+    if (wins.length === 0) {
+      createWindow()
+    } else {
+      const win = wins[0]
+      if (win.isVisible()) {
+        win.hide()
+      } else {
+        const text = clipboard.readText()
+        win.webContents.send('clipboard-update', text)
+        win.show()
+        win.focus()
+      }
+    }
+  })
+  
+  if (!ret) {
+    console.log(`Fallo al registrar el atajo: ${accelerator}`)
+  }
+  return ret
+}
 
 // IPC Handlers for settings
 ipcMain.handle('get-settings', () => {
   return {
     apiKey: store.get('apiKey'),
-    models: store.get('models')
+    models: store.get('models'),
+    shortcut: store.get('shortcut')
   }
 })
 
@@ -40,6 +68,11 @@ ipcMain.handle('get-setting', (_event, key: keyof StoreSchema) => {
 
 ipcMain.handle('set-setting', (_event, key: keyof StoreSchema, value: string | string[]) => {
   store.set(key, value)
+  
+  // Si el atajo se está actualizando, registramos de nuevo.
+  if (key === 'shortcut' && typeof value === 'string') {
+    return registerShortcut(value)
+  }
   return true
 })
 
@@ -107,28 +140,10 @@ app.whenReady().then(() => {
 
   createWindow()
 
-  // Registro de atajo
-  const ret = globalShortcut.register('CommandOrControl+Shift+X', () => {
-    const wins = BrowserWindow.getAllWindows()
-    if (wins.length === 0) {
-      createWindow()
-    } else {
-      const win = wins[0]
-      if (win.isVisible()) {
-        win.hide()
-      } else {
-        const text = clipboard.readText();
-        win.webContents.send('clipboard-update', text);        
+  // Registro del atajo desde la configuración
+  const storedShortcut = store.get('shortcut')
+  registerShortcut(storedShortcut)
 
-        win.show()
-        win.focus()
-      }
-    }
-  })
-
-  if (!ret) {
-    console.log('Fallo al registrar el atajo global');
-  }
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

@@ -3,6 +3,7 @@ import { ElectronAPI } from '@electron-toolkit/preload'
 export interface AppSettings {
   apiKey: string
   models: string[]
+  shortcut: string
 }
 
 // Define the custom API interface
