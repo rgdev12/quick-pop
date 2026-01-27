@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: quick-pop
+productName: Quick Pop
 directories:
   buildResources: build
 files:
@@ -12,11 +12,14 @@ files:
 asarUnpack:
   - resources/**
 win:
+  icon: build/logo-st.ico
   executableName: quick-pop
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
+  installerIcon: build/logo-st.ico
+  uninstallerIcon: build/logo-st.ico
   createDesktopShortcut: always
 mac:
   entitlementsInherit: build/entitlements.mac.plist
