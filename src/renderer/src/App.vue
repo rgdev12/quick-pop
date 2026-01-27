@@ -139,7 +139,8 @@ const focusInput = () => {
   </div>
 
   <ApiKeySetup 
-    v-else-if="needsApiKey" 
+    v-else-if="needsApiKey"
+    @close="closeApp"
     @complete="onApiKeySetupComplete" 
   />
 

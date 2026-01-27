@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ArrowRight } from 'lucide-vue-next'
+import { ArrowRight, X } from 'lucide-vue-next'
 
 const emit = defineEmits<{
   complete: []
+  close: []
 }>()
+
+const closeWindow = () => {
+  emit('close')
+}
 
 const apiKey = ref('')
 const isLoading = ref(false)
@@ -31,7 +36,15 @@ const saveAndContinue = async () => {
 </script>
 
 <template>
-  <div class="w-screen h-screen flex flex-col items-center justify-center bg-slate-950 p-6">
+  <div class="w-screen h-screen flex flex-col items-center justify-center bg-slate-950 p-6 relative">
+    <!-- Botón de cerrar -->
+    <button
+      @click="closeWindow"
+      class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 rounded-lg transition-all"
+      title="Cerrar"
+    >
+      <X class="w-5 h-5" />
+    </button>
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
         <h1 class="text-2xl font-bold text-slate-100 mb-2">Configura tu API Key</h1>
